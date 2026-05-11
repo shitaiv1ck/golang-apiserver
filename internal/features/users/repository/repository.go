@@ -18,7 +18,7 @@ func NewRepository(store *postgres.Store) *UsersRepository {
 	}
 }
 
-func (r *UsersRepository) Create(user *domains.User) (*domains.User, error) {
+func (r *UsersRepository) Create(user *domains.User) error {
 	db := r.Store.GetDB()
 
 	query := `
@@ -28,10 +28,10 @@ func (r *UsersRepository) Create(user *domains.User) (*domains.User, error) {
 	`
 
 	if err := db.QueryRow(query, user.Email, user.EncryptedPassword).Scan(&user.ID); err != nil {
-		return nil, err
+		return err
 	}
 
-	return user, nil
+	return nil
 }
 
 func (r *UsersRepository) FindByEmail(email string) (*domains.User, error) {

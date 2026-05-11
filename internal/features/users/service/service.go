@@ -7,7 +7,7 @@ import (
 )
 
 type UsersRepository interface {
-	Create(user *domains.User) (*domains.User, error)
+	Create(user *domains.User) error
 	FindByEmail(email string) (*domains.User, error)
 }
 
@@ -21,21 +21,21 @@ func NewService(usersRepository UsersRepository) *UsersService {
 	}
 }
 
-func (s *UsersService) Create(user *domains.User) (*domains.User, error) {
+func (s *UsersService) Create(user *domains.User) error {
 	if err := user.Validate(); err != nil {
-		return nil, err
+		return err
 	}
 
 	if err := user.EncryptPassword(); err != nil {
-		return nil, err
+		return err
 	}
 
-	userFromRep, err := s.usersRepository.Create(user)
+	err := s.usersRepository.Create(user)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return userFromRep, nil
+	return nil
 }
 
 func (s *UsersService) FindByEmail(email string) (*domains.User, error) {
