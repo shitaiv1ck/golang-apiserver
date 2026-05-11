@@ -11,7 +11,7 @@ import (
 )
 
 type UsersService interface {
-	Create(user *domains.User) (*domains.User, error)
+	Create(user *domains.User) error
 	FindByEmail(email string) (*domains.User, error)
 }
 
@@ -44,9 +44,9 @@ func (t *UsersTransport) CreateHandler() http.HandlerFunc {
 			return
 		}
 
-		userFromDTO := domains.NewUser(0, userDTO.Email, userDTO.Password, "")
+		userDomain := domains.NewUser(0, userDTO.Email, userDTO.Password, "")
 
-		user, err := t.usersService.Create(userFromDTO)
+		err := t.usersService.Create(userDomain)
 		if err != nil {
 			if errors.Is(err, core_errors.ErrInvalidArgument) {
 				w.WriteHeader(http.StatusBadRequest)
@@ -64,9 +64,9 @@ func (t *UsersTransport) CreateHandler() http.HandlerFunc {
 		}
 
 		response := CreateUserResponse{
-			ID:                user.ID,
-			Email:             user.Email,
-			EncryptedPassword: user.EncryptedPassword,
+			ID:                userDomain.ID,
+			Email:             userDomain.Email,
+			EncryptedPassword: userDomain.EncryptedPassword,
 		}
 
 		json.NewEncoder(w).Encode(response)
