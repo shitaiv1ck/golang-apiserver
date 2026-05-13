@@ -6,6 +6,9 @@ import (
 	"apiserver/internal/core/repository/postgres"
 	"database/sql"
 	"errors"
+	"fmt"
+
+	"github.com/lib/pq"
 )
 
 type UsersRepository struct {
@@ -18,32 +21,39 @@ func NewRepository(store *postgres.Store) *UsersRepository {
 	}
 }
 
-func (r *UsersRepository) Create(user *domains.User) error {
+func (r *UsersRepository) Create(user *domains.User) (*domains.User, error) {
 	db := r.Store.GetDB()
 
 	query := `
 		INSERT INTO apiserver.users(email, encrypted_password)
 		VALUES ($1, $2)
-		RETURNING id
+		RETURNING id, email;
 	`
 
-	if err := db.QueryRow(query, user.Email, user.EncryptedPassword).Scan(&user.ID); err != nil {
-		return err
+	userDomain := &domains.User{}
+	if err := db.QueryRow(query, user.Email, user.EncryptedPassword).Scan(&userDomain.ID, &userDomain.Email); err != nil {
+		if errPQ, ok := err.(*pq.Error); ok {
+			if errPQ.Code == "23505" {
+				return nil, fmt.Errorf("%v: %w", err, core_errors.ErrInvalidArgument)
+			}
+		}
+
+		return nil, err
 	}
 
-	return nil
+	return userDomain, nil
 }
 
 func (r *UsersRepository) FindByEmail(email string) (*domains.User, error) {
 	db := r.Store.GetDB()
 
 	query := `
-		SELECT * FROM apiserver.users
-		WHERE email = $1
+		SELECT id, email FROM apiserver.users
+		WHERE email = $1;
 	`
 
 	user := &domains.User{}
-	if err := db.QueryRow(query, email).Scan(&user.ID, &user.Email, &user.EncryptedPassword); err != nil {
+	if err := db.QueryRow(query, email).Scan(&user.ID, &user.Email); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, core_errors.ErrNotFound
 		}

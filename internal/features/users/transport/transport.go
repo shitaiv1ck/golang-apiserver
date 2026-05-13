@@ -2,16 +2,14 @@ package users_transport
 
 import (
 	"apiserver/internal/core/domains"
-	core_errors "apiserver/internal/core/errors"
-	core_request "apiserver/internal/core/request"
-	core_utils "apiserver/internal/core/utils"
-	"encoding/json"
-	"errors"
+	core_request "apiserver/internal/core/transport/request"
+	core_response "apiserver/internal/core/transport/response"
+	core_utils "apiserver/internal/core/transport/utils"
 	"net/http"
 )
 
 type UsersService interface {
-	Create(user *domains.User) error
+	Create(user *domains.User) (*domains.User, error)
 	FindByEmail(email string) (*domains.User, error)
 }
 
@@ -27,91 +25,56 @@ func NewTransport(usersService UsersService) *UsersTransport {
 
 func (t *UsersTransport) CreateHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		responseHandler := core_response.NewResponseHandler(w)
+
 		var userDTO UserDTO
 		if err := core_request.DecodeAndValidate(r, &userDTO); err != nil {
-			if errors.Is(err, core_errors.ErrInvalidArgument) {
-				w.WriteHeader(http.StatusBadRequest)
-			} else {
-				w.WriteHeader(http.StatusInternalServerError)
-			}
-
-			errorDTO := ErrorDTO{
-				Message: err.Error(),
-			}
-
-			json.NewEncoder(w).Encode(errorDTO)
+			responseHandler.ErrorResponse("decode and validate request", err)
 
 			return
 		}
 
-		userDomain := domains.NewUser(0, userDTO.Email, userDTO.Password, "")
+		user := domains.NewUser(-1, userDTO.Email, userDTO.Password, "")
 
-		err := t.usersService.Create(userDomain)
+		userDomain, err := t.usersService.Create(user)
 		if err != nil {
-			if errors.Is(err, core_errors.ErrInvalidArgument) {
-				w.WriteHeader(http.StatusBadRequest)
-			} else {
-				w.WriteHeader(http.StatusInternalServerError)
-			}
-
-			errorDTO := ErrorDTO{
-				Message: err.Error(),
-			}
-
-			json.NewEncoder(w).Encode(errorDTO)
+			responseHandler.ErrorResponse("create user", err)
 
 			return
 		}
 
 		response := CreateUserResponse{
-			ID:                userDomain.ID,
-			Email:             userDomain.Email,
-			EncryptedPassword: userDomain.EncryptedPassword,
+			ID:    userDomain.ID,
+			Email: userDomain.Email,
 		}
 
-		json.NewEncoder(w).Encode(response)
+		responseHandler.JsonResponse(response, http.StatusCreated)
 	}
 }
 
 func (t *UsersTransport) FindByEmailHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		responseHandler := core_response.NewResponseHandler(w)
+
 		email, err := core_utils.GetStringPathValue(r, "email")
 		if err != nil {
-			errorDTO := ErrorDTO{
-				Message: err.Error(),
-			}
-
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(errorDTO)
+			responseHandler.ErrorResponse("get string path value", err)
 
 			return
 		}
 
 		userDomain, err := t.usersService.FindByEmail(email)
 		if err != nil {
-			if errors.Is(err, core_errors.ErrNotFound) {
-				w.WriteHeader(http.StatusNotFound)
-			} else if errors.Is(err, core_errors.ErrInvalidArgument) {
-				w.WriteHeader(http.StatusBadRequest)
-			} else {
-				w.WriteHeader(http.StatusInternalServerError)
-			}
+			responseHandler.ErrorResponse("find user by email", err)
 
-			errorDTO := ErrorDTO{
-				Message: err.Error(),
-			}
-
-			json.NewEncoder(w).Encode(errorDTO)
 			return
 		}
 
 		response := CreateUserResponse{
-			ID:                userDomain.ID,
-			Email:             userDomain.Email,
-			EncryptedPassword: userDomain.EncryptedPassword,
+			ID:    userDomain.ID,
+			Email: userDomain.Email,
 		}
 
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(response)
+		responseHandler.JsonResponse(response, http.StatusOK)
 	}
 }
