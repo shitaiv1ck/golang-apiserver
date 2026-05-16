@@ -24,6 +24,15 @@ func NewUser(id int, email string, password string, encryptedPassword string) *U
 	}
 }
 
+func NewUninitializedUser(email string, password string) *User {
+	return &User{
+		ID:                -1,
+		Email:             email,
+		Password:          password,
+		EncryptedPassword: "",
+	}
+}
+
 func (u *User) Validate() error {
 	if len([]rune(u.Email)) == 0 {
 		return fmt.Errorf("email can't be null: %w", core_errors.ErrInvalidArgument)
@@ -49,4 +58,8 @@ func (u *User) EncryptPassword() error {
 	u.EncryptedPassword = string(encryptedPassword)
 
 	return nil
+}
+
+func (u *User) VerifyPassword(password string) error {
+	return bcrypt.CompareHashAndPassword([]byte(u.EncryptedPassword), []byte(password))
 }

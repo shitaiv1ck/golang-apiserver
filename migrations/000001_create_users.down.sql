@@ -1,3 +1,4 @@
-DROP TABLE apiserver.users;
+DROP TABLE IF EXISTS apiserver.users_sessions;
+DROP TABLE IF EXISTS apiserver.users;
 
-DROP SCHEMA apiserver;
+DROP SCHEMA IF EXISTS apiserver;

@@ -49,5 +49,13 @@ func (r *ResponseHandler) setErrorStatusCode(err error) int {
 		return http.StatusNotFound
 	}
 
+	if errors.Is(err, core_errors.ErrInvalidPasswordOrEmail) {
+		return http.StatusUnauthorized
+	}
+
+	if errors.Is(err, core_errors.ErrConflict) {
+		return http.StatusConflict
+	}
+
 	return http.StatusInternalServerError
 }
