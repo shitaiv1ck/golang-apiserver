@@ -34,7 +34,7 @@ func (r *UsersRepository) Create(user *domains.User) (*domains.User, error) {
 	if err := db.QueryRow(query, user.Email, user.EncryptedPassword).Scan(&userDomain.ID, &userDomain.Email); err != nil {
 		if errPQ, ok := err.(*pq.Error); ok {
 			if errPQ.Code == "23505" {
-				return nil, fmt.Errorf("%v: %w", err, core_errors.ErrInvalidArgument)
+				return nil, fmt.Errorf("%v: %w", err, core_errors.ErrConflict)
 			}
 		}
 
@@ -48,12 +48,12 @@ func (r *UsersRepository) FindByEmail(email string) (*domains.User, error) {
 	db := r.Store.GetDB()
 
 	query := `
-		SELECT id, email FROM apiserver.users
+		SELECT id, email, encrypted_password FROM apiserver.users
 		WHERE email = $1;
 	`
 
 	user := &domains.User{}
-	if err := db.QueryRow(query, email).Scan(&user.ID, &user.Email); err != nil {
+	if err := db.QueryRow(query, email).Scan(&user.ID, &user.Email, &user.EncryptedPassword); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, core_errors.ErrNotFound
 		}

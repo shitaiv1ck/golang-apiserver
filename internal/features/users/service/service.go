@@ -2,8 +2,6 @@ package users_service
 
 import (
 	"apiserver/internal/core/domains"
-	core_errors "apiserver/internal/core/errors"
-	"fmt"
 	"net/mail"
 )
 
@@ -40,8 +38,8 @@ func (s *UsersService) Create(user *domains.User) (*domains.User, error) {
 }
 
 func (s *UsersService) FindByEmail(email string) (*domains.User, error) {
-	if _, err := mail.ParseAddress(email); err != nil {
-		return nil, fmt.Errorf("invalid 'email' format: %v: %w", err, core_errors.ErrInvalidArgument)
+	if err := validateEmail(email); err != nil {
+		return nil, err
 	}
 
 	userFromRep, err := s.usersRepository.FindByEmail(email)
@@ -50,4 +48,12 @@ func (s *UsersService) FindByEmail(email string) (*domains.User, error) {
 	}
 
 	return userFromRep, nil
+}
+
+func validateEmail(email string) error {
+	if _, err := mail.ParseAddress(email); err != nil {
+		return err
+	}
+
+	return nil
 }

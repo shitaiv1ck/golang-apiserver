@@ -3,6 +3,8 @@ package core_errors
 import "errors"
 
 var (
-	ErrNotFound        = errors.New("Not found")
-	ErrInvalidArgument = errors.New("Invalid argument")
+	ErrNotFound               = errors.New("Not found")
+	ErrInvalidArgument        = errors.New("Invalid argument")
+	ErrInvalidPasswordOrEmail = errors.New("invalid password or email")
+	ErrConflict               = errors.New("already exists")
 )

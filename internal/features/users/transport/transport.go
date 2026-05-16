@@ -34,7 +34,7 @@ func (t *UsersTransport) CreateHandler() http.HandlerFunc {
 			return
 		}
 
-		user := domains.NewUser(-1, userDTO.Email, userDTO.Password, "")
+		user := domains.NewUninitializedUser(userDTO.Email, userDTO.Password)
 
 		userDomain, err := t.usersService.Create(user)
 		if err != nil {
